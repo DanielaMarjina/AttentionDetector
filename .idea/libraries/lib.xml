@@ -1,0 +1,14 @@
+<component name="libraryTable">
+  <library name="lib">
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$/../../../../../../javafx-sdk-21/javafx-sdk-21.0.10/lib" />
+      <root url="jar://$PROJECT_DIR$/../../../../../../OpenCV/opencv/build/java/opencv-4120.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/../../../../../../OpenCV/opencv/build/java/opencv-4120.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../../../../../../OpenCV/opencv/build/java/opencv-4120.jar!/" />
+    </SOURCES>
+    <jarDirectory url="file://$PROJECT_DIR$/../../../../../../javafx-sdk-21/javafx-sdk-21.0.10/lib" recursive="false" />
+  </library>
+</component>
