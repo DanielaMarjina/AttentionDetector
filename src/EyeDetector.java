@@ -1,7 +1,12 @@
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.beans.Observable;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.scene.Scene;
+import javafx.scene.control.ListView;
 import javafx.scene.image.Image;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
@@ -30,9 +35,19 @@ public class EyeDetector extends Application {
     private MediaPlayer mediaPlayer;
     private volatile boolean cameraActive = true;
     private Thread cameraThread;
+    private Stage cameraStage;
+    private Stage videoStage;
+    private ListView<String> videos;
+    private Media media;
 
     @Override
     public void start(Stage primaryStage) throws Exception {
+        cameraStage=primaryStage;
+        setUpCameraStage();
+
+        videoStage=new Stage();
+        videoStage.setTitle("I warned you..");
+
         camera = new VideoCapture(0);
         faceDetector = new CascadeClassifier("haarcascades/haarcascade_frontalface_default.xml");
         eyeDetector = new CascadeClassifier("haarcascades/haarcascade_eye.xml");
@@ -41,23 +56,65 @@ public class EyeDetector extends Application {
             Platform.exit();
             return;
         }
-        cameraView = new ImageView();
-        cameraView.setFitWidth(500);
-        cameraView.setFitHeight(600);
-        Media media = new Media(new File("media/video.mp4").toURI().toString());
-        mediaPlayer = new MediaPlayer(media);
-        videoView = new MediaView(mediaPlayer);
-        videoView.setVisible(false);
-        videoView.setFitHeight(600);
-        videoView.setFitWidth(500);
-        mediaPlayer.setCycleCount(MediaPlayer.INDEFINITE);
-        StackPane root = new StackPane();
-        root.getChildren().addAll(cameraView, videoView);
-        Scene scene = new Scene(root, 500, 600);
-        primaryStage.setScene(scene);
-        primaryStage.setTitle("LOOK AT ME!");
-        primaryStage.show();
         startCameraLoop();
+    }
+
+    private ListView<String> getListView(){
+        videos=new ListView<>();
+        ObservableList<String> data= FXCollections.observableArrayList("COTCOOODAAAC!!!","Your future","The walking Dev").sorted();
+        videos.setItems(data);
+        videos.getSelectionModel().selectFirst();
+        videos.getSelectionModel().selectedItemProperty().addListener((observableValue, o, t1) -> {
+            if(t1!=null){
+                if(mediaPlayer != null) {
+                    mediaPlayer.stop();
+                    mediaPlayer.dispose();
+                }
+                if(t1.equals("COTCOOODAAAC!!!"))
+                    media = new Media(new File("media/video.mp4").toURI().toString());
+                else if(t1.equals("The walking Dev"))
+                    media = new Media(new File("media/video2.mp4").toURI().toString());
+                mediaPlayer = new MediaPlayer(media);
+                mediaPlayer.setCycleCount(MediaPlayer.INDEFINITE);
+                if(videoView != null) {
+                    videoView.setMediaPlayer(mediaPlayer);
+                }
+
+            }
+        });
+
+        return videos;
+    }
+
+    private void setUpCameraStage(){
+        cameraView = new ImageView();
+        cameraView.setFitWidth(400);
+        cameraView.setFitHeight(500);
+
+        videos=getListView();
+        media = new Media(new File("media/video.mp4").toURI().toString());
+        mediaPlayer = new MediaPlayer(media);
+        mediaPlayer.setCycleCount(MediaPlayer.INDEFINITE);
+
+        HBox cameraHBox = new HBox(10);
+        cameraHBox.getChildren().addAll(videos, cameraView);
+
+        Scene cameraScene = new Scene(cameraHBox, 600, 500);
+        cameraStage.setScene(cameraScene);
+        cameraStage.setTitle("LOOK AT ME!");
+        cameraStage.show();
+    }
+
+    private void setupVideoStage(){
+        if(videoView==null){
+            videoView = new MediaView(mediaPlayer);
+            videoView.setFitHeight(600);
+            videoView.setFitWidth(300);
+            StackPane videoRoot = new StackPane(videoView);
+            videoStage.setScene(new Scene(videoRoot, 300, 500));
+            videoStage.setX(cameraStage.getX() + 520);
+            videoStage.setY(cameraStage.getY());
+        }
     }
 
     private void startCameraLoop() {
@@ -83,13 +140,16 @@ public class EyeDetector extends Application {
                     }
                     boolean attention = !faces.empty() && eyeContact;
                     Platform.runLater(() -> {
+                        cameraView.setImage(matToImage(frame));
                         if (attention) {
-                            videoView.setVisible(false);
-                            mediaPlayer.pause();
-                            if (!frame.empty()) cameraView.setImage(matToImage(frame));
+                            if (videoStage.isShowing()) {
+                                videoStage.hide();
+                                mediaPlayer.pause();
+                            }
                         } else {
-                            videoView.setVisible(true);
-                            if (mediaPlayer.getStatus() != MediaPlayer.Status.PLAYING) {
+                            if(mediaPlayer!=null) {
+                                setupVideoStage();
+                                videoStage.show();
                                 mediaPlayer.play();
                             }
                         }
@@ -133,7 +193,9 @@ public class EyeDetector extends Application {
         if (mediaPlayer != null) {
             mediaPlayer.stop();
             mediaPlayer.dispose();
+            mediaPlayer=null;
         }
+        videoView=null;
     }
 
     public static void main(String[] args) {
