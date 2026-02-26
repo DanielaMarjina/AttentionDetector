@@ -16,13 +16,9 @@ import org.opencv.imgproc.Imgproc;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 public class EyeDetector extends Application {
-
-    static{
+    static {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
     }
 
@@ -33,97 +29,91 @@ public class EyeDetector extends Application {
     private MediaView videoView;
     private MediaPlayer mediaPlayer;
     private volatile boolean cameraActive = true;
-    private ScheduledExecutorService timer;
+    private Thread cameraThread;
 
     @Override
     public void start(Stage primaryStage) throws Exception {
-
         camera = new VideoCapture(0);
         faceDetector = new CascadeClassifier("haarcascades/haarcascade_frontalface_default.xml");
         eyeDetector = new CascadeClassifier("haarcascades/haarcascade_eye.xml");
-
         if (!camera.isOpened()) {
             System.out.println("Nu a putut fi conectata camera");
             Platform.exit();
             return;
         }
-
         cameraView = new ImageView();
-        cameraView.setFitWidth(600);
-        cameraView.setFitHeight(800);
-
+        cameraView.setFitWidth(500);
+        cameraView.setFitHeight(600);
         Media media = new Media(new File("media/video.mp4").toURI().toString());
         mediaPlayer = new MediaPlayer(media);
         videoView = new MediaView(mediaPlayer);
         videoView.setVisible(false);
-        videoView.setFitHeight(800);
-        videoView.setFitWidth(600);
+        videoView.setFitHeight(600);
+        videoView.setFitWidth(500);
         mediaPlayer.setCycleCount(MediaPlayer.INDEFINITE);
-
         StackPane root = new StackPane();
         root.getChildren().addAll(cameraView, videoView);
-
         Scene scene = new Scene(root, 500, 600);
         primaryStage.setScene(scene);
         primaryStage.setTitle("LOOK AT ME!");
         primaryStage.show();
-
         startCameraLoop();
     }
 
     private void startCameraLoop() {
-        cameraActive = true;
-        timer = Executors.newSingleThreadScheduledExecutor();
-
-        timer.scheduleAtFixedRate(() -> {
-            if (!cameraActive) return;
-
+        cameraThread = new Thread(() -> {
             Mat frame = new Mat();
             Mat grayFrame = new Mat();
-
-            if (!camera.read(frame) || frame.empty()) return;
-
-            Imgproc.cvtColor(frame, grayFrame, Imgproc.COLOR_BGR2GRAY);
-
-            MatOfRect faces = new MatOfRect();
-            faceDetector.detectMultiScale(grayFrame, faces);
-
-            boolean eyeContact = false;
-
-            for (Rect face : faces.toArray()) {
-                Imgproc.rectangle(
-                        frame,
-                        new Point(face.x, face.y),
-                        new Point(face.x + face.width,face.y + face.height),
-                        new Scalar(0, 255, 0),
-                        2
-                );
-                Mat faceROI = grayFrame.submat(face);
-                MatOfRect eyes = new MatOfRect();
-                eyeDetector.detectMultiScale(faceROI, eyes);
-                if (eyes.toArray().length > 0) {
-                    eyeContact = true;
-                    break;
-                }
-            }
-
-            boolean attention = !faces.empty() && eyeContact;
-
-            Platform.runLater(() -> {
-                if (attention) {
-                    videoView.setVisible(false);
-                    mediaPlayer.pause();
-                    if (!frame.empty())
-                        cameraView.setImage(matToImage(frame));
-                } else {
-                    videoView.setVisible(true);
-                    if (mediaPlayer.getStatus() != MediaPlayer.Status.PLAYING) {
-                        mediaPlayer.play();
+            try {
+                while (cameraActive && !Thread.currentThread().isInterrupted()) {
+                    if (!camera.read(frame) || frame.empty()) break;
+                    if (frame.empty()) continue;
+                    Imgproc.cvtColor(frame, grayFrame, Imgproc.COLOR_BGR2GRAY);
+                    MatOfRect faces = new MatOfRect();
+                    faceDetector.detectMultiScale(grayFrame, faces);
+                    boolean eyeContact = false;
+                    for (Rect face : faces.toArray()) {
+                        Mat faceROI = grayFrame.submat(face);
+                        MatOfRect eyes = new MatOfRect();
+                        eyeDetector.detectMultiScale(faceROI, eyes);
+                        if (eyes.toArray().length > 0) {
+                            eyeContact = true;
+                            break;
+                        }
+                    }
+                    boolean attention = !faces.empty() && eyeContact;
+                    Platform.runLater(() -> {
+                        if (attention) {
+                            videoView.setVisible(false);
+                            mediaPlayer.pause();
+                            if (!frame.empty()) cameraView.setImage(matToImage(frame));
+                        } else {
+                            videoView.setVisible(true);
+                            if (mediaPlayer.getStatus() != MediaPlayer.Status.PLAYING) {
+                                mediaPlayer.play();
+                            }
+                        }
+                    });
+                    try {
+                        Thread.sleep(30);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        break;
                     }
                 }
-            });
-
-        }, 0, 33, TimeUnit.MILLISECONDS);
+            } finally {
+                if (camera != null) {
+                    try {
+                        camera.release();
+                    } catch (Exception e) {
+                        System.err.println("Camera failes" + e.getMessage());
+                    }
+                    camera = null;
+                }
+            }
+        });
+        cameraThread.setDaemon(true);
+        cameraThread.start();
     }
 
     private Image matToImage(Mat frame) {
@@ -135,20 +125,18 @@ public class EyeDetector extends Application {
     @Override
     public void stop() {
         cameraActive = false;
+        if (cameraThread != null) {
+            cameraThread.interrupt();
 
-        if (timer != null && !timer.isShutdown()) {
-            timer.shutdownNow();
         }
 
-        if (camera != null && camera.isOpened())
-            camera.release();
-
-        if (mediaPlayer != null)
+        if (mediaPlayer != null) {
+            mediaPlayer.stop();
             mediaPlayer.dispose();
+        }
     }
 
     public static void main(String[] args) {
         launch(args);
     }
-
 }
