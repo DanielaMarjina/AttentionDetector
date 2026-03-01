@@ -1,6 +1,5 @@
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.beans.Observable;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.Scene;
@@ -19,8 +18,13 @@ import org.opencv.videoio.VideoCapture;
 import javafx.scene.image.ImageView;
 import org.opencv.imgproc.Imgproc;
 
+import java.awt.*;
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class EyeDetector extends Application {
     static {
@@ -39,13 +43,15 @@ public class EyeDetector extends Application {
     private Stage videoStage;
     private ListView<String> videos;
     private Media media;
+    private Boolean openBrowser = false;
+    private boolean browserOpened = false;
 
     @Override
     public void start(Stage primaryStage) throws Exception {
-        cameraStage=primaryStage;
+        cameraStage = primaryStage;
         setUpCameraStage();
 
-        videoStage=new Stage();
+        videoStage = new Stage();
         videoStage.setTitle("I warned you..");
 
         camera = new VideoCapture(0);
@@ -56,42 +62,66 @@ public class EyeDetector extends Application {
             Platform.exit();
             return;
         }
+
         startCameraLoop();
     }
 
-    private ListView<String> getListView(){
-        videos=new ListView<>();
-        ObservableList<String> data= FXCollections.observableArrayList("COTCOOODAAAC!!!","Your future","The walking Dev").sorted();
+    private ListView<String> getListView() {
+        videos = new ListView<>();
+        ObservableList<String> data = FXCollections.observableArrayList("COTCOOODAAAC!!!", "Your future", "The walking Dev").sorted();
         videos.setItems(data);
         videos.getSelectionModel().selectFirst();
         videos.getSelectionModel().selectedItemProperty().addListener((observableValue, o, t1) -> {
-            if(t1!=null){
-                if(mediaPlayer != null) {
+            if (t1 != null) {
+                if (mediaPlayer != null) {
                     mediaPlayer.stop();
                     mediaPlayer.dispose();
                 }
-                if(t1.equals("COTCOOODAAAC!!!"))
+                if (t1.equals("COTCOOODAAAC!!!")) {
+                    openBrowser = false;
                     media = new Media(new File("media/video.mp4").toURI().toString());
-                else if(t1.equals("The walking Dev"))
+                    mediaPlayer = new MediaPlayer(media);
+                    mediaPlayer.setCycleCount(MediaPlayer.INDEFINITE);
+                    if (videoView != null) {
+                        videoView.setMediaPlayer(mediaPlayer);
+                    }
+                } else if (t1.equals("The walking Dev")) {
+                    openBrowser = false;
                     media = new Media(new File("media/video2.mp4").toURI().toString());
-                mediaPlayer = new MediaPlayer(media);
-                mediaPlayer.setCycleCount(MediaPlayer.INDEFINITE);
-                if(videoView != null) {
-                    videoView.setMediaPlayer(mediaPlayer);
+                    mediaPlayer = new MediaPlayer(media);
+                    mediaPlayer.setCycleCount(MediaPlayer.INDEFINITE);
+                    if (videoView != null) {
+                        videoView.setMediaPlayer(mediaPlayer);
+                    }
+                } else if (t1.equals("Your future")) {
+                    videoStage.hide();
+                    openBrowser = true;
+                    if (mediaPlayer != null) {
+                        mediaPlayer.stop();
+                    }
                 }
-
             }
         });
 
         return videos;
     }
 
-    private void setUpCameraStage(){
+    private void launchURL() {
+        try {
+            new ProcessBuilder(
+                    "cmd", "/c", "start chrome --fullscreen https://www.mcdonalds.ro/cariera"
+            ).start();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void setUpCameraStage() {
         cameraView = new ImageView();
         cameraView.setFitWidth(400);
         cameraView.setFitHeight(500);
 
-        videos=getListView();
+        videos = getListView();
         media = new Media(new File("media/video.mp4").toURI().toString());
         mediaPlayer = new MediaPlayer(media);
         mediaPlayer.setCycleCount(MediaPlayer.INDEFINITE);
@@ -105,8 +135,8 @@ public class EyeDetector extends Application {
         cameraStage.show();
     }
 
-    private void setupVideoStage(){
-        if(videoView==null){
+    private void setupVideoStage() {
+        if (videoView == null) {
             videoView = new MediaView(mediaPlayer);
             videoView.setFitHeight(600);
             videoView.setFitWidth(300);
@@ -125,6 +155,7 @@ public class EyeDetector extends Application {
                 while (cameraActive && !Thread.currentThread().isInterrupted()) {
                     if (!camera.read(frame) || frame.empty()) break;
                     if (frame.empty()) continue;
+                    Mat frameCopy = frame.clone();
                     Imgproc.cvtColor(frame, grayFrame, Imgproc.COLOR_BGR2GRAY);
                     MatOfRect faces = new MatOfRect();
                     faceDetector.detectMultiScale(grayFrame, faces);
@@ -140,17 +171,26 @@ public class EyeDetector extends Application {
                     }
                     boolean attention = !faces.empty() && eyeContact;
                     Platform.runLater(() -> {
-                        cameraView.setImage(matToImage(frame));
+                        cameraView.setImage(matToImage(frameCopy));
                         if (attention) {
                             if (videoStage.isShowing()) {
                                 videoStage.hide();
                                 mediaPlayer.pause();
                             }
+                            if (openBrowser)
+                                browserOpened = false;
                         } else {
-                            if(mediaPlayer!=null) {
-                                setupVideoStage();
-                                videoStage.show();
-                                mediaPlayer.play();
+                            if (openBrowser) {
+                                if (!browserOpened) {
+                                    launchURL();
+                                    browserOpened = true;
+                                }
+                            } else {
+                                if (mediaPlayer != null) {
+                                    setupVideoStage();
+                                    videoStage.show();
+                                    mediaPlayer.play();
+                                }
                             }
                         }
                     });
@@ -193,9 +233,9 @@ public class EyeDetector extends Application {
         if (mediaPlayer != null) {
             mediaPlayer.stop();
             mediaPlayer.dispose();
-            mediaPlayer=null;
+            mediaPlayer = null;
         }
-        videoView=null;
+        videoView = null;
     }
 
     public static void main(String[] args) {
