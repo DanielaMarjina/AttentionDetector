@@ -1,3 +1,4 @@
+import javafx.animation.FadeTransition;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -14,6 +15,7 @@ import javafx.scene.media.MediaPlayer;
 import javafx.scene.media.MediaView;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 import org.opencv.core.*;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.objdetect.CascadeClassifier;
@@ -140,6 +142,7 @@ public class EyeDetector extends Application {
         mediaPlayer.setCycleCount(MediaPlayer.INDEFINITE);
 
         btnExit.setOnAction(actionEvent -> Platform.exit());
+        btnExit.setTooltip(new Tooltip("Click to exit the program"));
         btnExit.setStyle(
                 "-fx-background-color: red; " +
                         "-fx-text-fill: white; " +
@@ -175,6 +178,10 @@ public class EyeDetector extends Application {
             videoStage.setX(cameraStage.getX() + 520);
             videoStage.setY(cameraStage.getY());
             videoView.setStyle("-fx-effect: dropshadow(gaussian, black, 20, 0.5, 0, 0);");
+            FadeTransition ft = new FadeTransition(Duration.millis(500), videoView);
+            ft.setFromValue(0);
+            ft.setToValue(1);
+            ft.play();
         }
     }
 
