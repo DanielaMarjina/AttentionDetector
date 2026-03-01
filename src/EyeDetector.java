@@ -4,12 +4,15 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.Scene;
 import javafx.scene.control.ListView;
+import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.media.MediaView;
+import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import org.opencv.core.*;
 import org.opencv.imgcodecs.Imgcodecs;
@@ -17,6 +20,7 @@ import org.opencv.objdetect.CascadeClassifier;
 import org.opencv.videoio.VideoCapture;
 import javafx.scene.image.ImageView;
 import org.opencv.imgproc.Imgproc;
+import javafx.scene.control.Button;
 
 import java.awt.*;
 import java.io.ByteArrayInputStream;
@@ -45,6 +49,8 @@ public class EyeDetector extends Application {
     private Media media;
     private Boolean openBrowser = false;
     private boolean browserOpened = false;
+    private Button btnExit = new Button("Exit");
+    private Text text=new Text("Choose your poison:");
 
     @Override
     public void start(Stage primaryStage) throws Exception {
@@ -66,9 +72,11 @@ public class EyeDetector extends Application {
         startCameraLoop();
     }
 
+
     private ListView<String> getListView() {
         videos = new ListView<>();
-        ObservableList<String> data = FXCollections.observableArrayList("COTCOOODAAAC!!!", "Your future", "The walking Dev").sorted();
+        videos.setMaxHeight(75);
+        ObservableList<String> data = FXCollections.observableArrayList("COTCOOODAAAC!!!", "Your future", "The walking Dev");
         videos.setItems(data);
         videos.getSelectionModel().selectFirst();
         videos.getSelectionModel().selectedItemProperty().addListener((observableValue, o, t1) -> {
@@ -122,14 +130,36 @@ public class EyeDetector extends Application {
         cameraView.setFitHeight(500);
 
         videos = getListView();
+        videos.setStyle(
+                "-fx-background-color: #34495e; " +
+                        "-fx-text-fill: white;"
+        );
+        videos.setTooltip(new Tooltip("Select a video or 'Your future' to open the browser"));
         media = new Media(new File("media/video.mp4").toURI().toString());
         mediaPlayer = new MediaPlayer(media);
         mediaPlayer.setCycleCount(MediaPlayer.INDEFINITE);
 
-        HBox cameraHBox = new HBox(10);
-        cameraHBox.getChildren().addAll(videos, cameraView);
+        btnExit.setOnAction(actionEvent -> Platform.exit());
+        btnExit.setStyle(
+                "-fx-background-color: red; " +
+                        "-fx-text-fill: white; " +
+                        "-fx-font-weight: bold; " +
+                        "-fx-font-size: 14px;"
+        );
 
-        Scene cameraScene = new Scene(cameraHBox, 600, 500);
+        text.setStyle("-fx-fill: white; -fx-font-size: 16px; -fx-font-weight: bold;");
+
+        VBox controlsVBox = new VBox(10,text,videos, btnExit);
+        controlsVBox.setPrefWidth(200);
+        controlsVBox.setStyle("-fx-padding: 10; -fx-background-color: blue;");
+
+        cameraView.setStyle("-fx-effect: dropshadow(gaussian, black, 10, 0.5, 0, 0);");
+
+        HBox mainHBox = new HBox(10);
+        mainHBox.getChildren().addAll(controlsVBox, cameraView);
+        mainHBox.setStyle("-fx-padding: 10;");
+
+        Scene cameraScene = new Scene(mainHBox, 600, 500);
         cameraStage.setScene(cameraScene);
         cameraStage.setTitle("LOOK AT ME!");
         cameraStage.show();
@@ -144,6 +174,7 @@ public class EyeDetector extends Application {
             videoStage.setScene(new Scene(videoRoot, 300, 500));
             videoStage.setX(cameraStage.getX() + 520);
             videoStage.setY(cameraStage.getY());
+            videoView.setStyle("-fx-effect: dropshadow(gaussian, black, 20, 0.5, 0, 0);");
         }
     }
 
