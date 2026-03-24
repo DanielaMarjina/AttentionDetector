@@ -128,8 +128,8 @@ public class EyeDetector extends Application {
 
     private void setUpCameraStage() {
         cameraView = new ImageView();
-        cameraView.setFitWidth(400);
-        cameraView.setFitHeight(500);
+        cameraView.setFitWidth(300);
+        cameraView.setFitHeight(400);
 
         videos = getListView();
         videos.setStyle(
@@ -162,7 +162,7 @@ public class EyeDetector extends Application {
         mainHBox.getChildren().addAll(controlsVBox, cameraView);
         mainHBox.setStyle("-fx-padding: 10;");
 
-        Scene cameraScene = new Scene(mainHBox, 600, 500);
+        Scene cameraScene = new Scene(mainHBox, 550, 450);
         cameraStage.setScene(cameraScene);
         cameraStage.setTitle("LOOK AT ME!");
         cameraStage.show();
