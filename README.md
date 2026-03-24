@@ -39,10 +39,11 @@ Depending on the user's attention:
 ## Demo
 
 ### Camera Detection
-
-
-### Video Mode
-![Video](images/video.png)
+![Camera](images/camera.png)
+![Camera](images/first_rage-bait.png)
+![Camera](images/second_rage-bait.png)
+![Camera](images/camera2.png)
+![Camera](images/third_rage-bait.png)
 
 ---
 
