@@ -45,17 +45,3 @@ Depending on the user's attention:
 ![Camera](images/camera2.png)
 ![Camera](images/third_rage-bait.png)
 
----
-
-## ⚙️ Setup & Run
-
-1. Install OpenCV and configure it in your project
-2. Make sure the following files exist:
-   - `haarcascade_frontalface_default.xml`
-   - `haarcascade_eye.xml`
-3. Add your media files:
-   - `media/video.mp4`
-   - `media/video2.mp4`
-4. Run the application:
-```bash
-Run EyeDetector.java
