@@ -20,7 +20,7 @@ Depending on the user's attention:
 
 ---
 
-## 🛠️ Technologies Used
+## Technologies Used
 - Java
 - JavaFX
 - OpenCV
